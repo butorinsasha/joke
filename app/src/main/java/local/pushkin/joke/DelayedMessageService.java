@@ -1,12 +1,12 @@
 package local.pushkin.joke;
 
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
+import android.content.Context;
 import android.content.Intent;
-import android.os.Handler;
-import android.widget.Toast;
-
-import androidx.annotation.Nullable;
-
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -18,7 +18,7 @@ public class DelayedMessageService extends IntentService {
 
     public static final String EXTRA_MESSAGE = "extra_message_end";
     private static final long DELAY_TIME = 5000;
-    private Handler handler;
+    public static final int NOTIFICATION_ID = 5453;
 
 
     public DelayedMessageService() {
@@ -26,12 +26,6 @@ public class DelayedMessageService extends IntentService {
         //Params:
         //name – Used to name the worker thread, important only for debugging.
         super("DelayedMessageService");
-    }
-
-    @Override
-    public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
-        handler = new Handler();
-        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
@@ -49,6 +43,26 @@ public class DelayedMessageService extends IntentService {
     }
 
     private void showText(final String text) {
-        handler.post(() -> Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show());
+        Intent intent = new Intent(this, MainActivity.class);
+        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(this);
+        taskStackBuilder.addParentStack(MainActivity.class);
+        taskStackBuilder.addNextIntent(intent);
+
+        //java.lang.IllegalArgumentException: local.pushkin.joke: Targeting S+ (version 31 and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified when creating a PendingIntent.
+        //Strongly consider using FLAG_IMMUTABLE, only use FLAG_MUTABLE if some functionality depends on the PendingIntent being mutable, e.g. if it needs to be used with inline replies or bubbles.
+        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Notification notification = new Notification.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(getString(R.string.app_name))
+                .setAutoCancel(true)
+                .setPriority(Notification.PRIORITY_MAX)
+                .setDefaults(Notification.DEFAULT_VIBRATE)
+                .setContentIntent(pendingIntent)
+                .setContentIntent(pendingIntent)
+                .setContentText(text)
+                .build();
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, notification);
     }
 }
