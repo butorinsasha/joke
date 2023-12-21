@@ -16,8 +16,7 @@ import androidx.annotation.Nullable;
  */
 public class DelayedMessageService extends IntentService {
 
-    public static final String EXTRA_MESSAGE_START = "extra_message_start";
-    public static final String EXTRA_MESSAGE_END = "extra_message_end";
+    public static final String EXTRA_MESSAGE = "extra_message_end";
     private static final long DELAY_TIME = 5000;
     private Handler handler;
 
@@ -38,8 +37,6 @@ public class DelayedMessageService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        showText(intent.getStringExtra(EXTRA_MESSAGE_START));
-
         synchronized (this) { // if no synchronized then: java.lang.IllegalMonitorStateException: object not locked by thread before wait()
             try {
                 wait(DELAY_TIME);
@@ -48,10 +45,10 @@ public class DelayedMessageService extends IntentService {
             }
         }
 
-        showText(intent.getStringExtra(EXTRA_MESSAGE_END));
+        showText(intent.getStringExtra(EXTRA_MESSAGE));
     }
 
     private void showText(final String text) {
-        handler.post(() -> Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show());
+        handler.post(() -> Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show());
     }
 }

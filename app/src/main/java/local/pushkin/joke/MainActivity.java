@@ -16,8 +16,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View view) {
         Intent intent = new Intent(this, DelayedMessageService.class);
-        intent.putExtra(DelayedMessageService.EXTRA_MESSAGE_START, getResources().getString(R.string.button_response1));
-        intent.putExtra(DelayedMessageService.EXTRA_MESSAGE_END, getResources().getString(R.string.button_response2));
+        intent.putExtra(DelayedMessageService.EXTRA_MESSAGE, getResources().getString(R.string.button_response));
         startService(intent);
     }
 }
