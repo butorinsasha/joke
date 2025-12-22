@@ -2,11 +2,17 @@ package local.pushkin.joke;
 
 import android.app.IntentService;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.os.IBinder;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -14,22 +20,16 @@ import android.content.Intent;
  * <p>
 * TODO: Customize class - update intent actions and extra parameters.
  */
-public class DelayedMessageService extends IntentService {
+public class DelayedMessageService extends Service {
 
+    public static final String TAG = "DelayedMessageService";
     public static final String EXTRA_MESSAGE = "extra_message_end";
-    private static final long DELAY_TIME = 5000;
+    public static final String NOTIFICATION_CHANNEL_ID = "1337";
+    private static final long DELAY_TIME = 1000;
     public static final int NOTIFICATION_ID = 5453;
 
-
-    public DelayedMessageService() {
-        //Creates an IntentService. Invoked by your subclass's constructor.
-        //Params:
-        //name – Used to name the worker thread, important only for debugging.
-        super("DelayedMessageService");
-    }
-
     @Override
-    protected void onHandleIntent(Intent intent) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
 
         synchronized (this) { // if no synchronized then: java.lang.IllegalMonitorStateException: object not locked by thread before wait()
             try {
@@ -40,6 +40,8 @@ public class DelayedMessageService extends IntentService {
         }
 
         showText(intent.getStringExtra(EXTRA_MESSAGE));
+
+        return START_NOT_STICKY;
     }
 
     private void showText(final String text) {
@@ -51,19 +53,33 @@ public class DelayedMessageService extends IntentService {
         //java.lang.IllegalArgumentException: local.pushkin.joke: Targeting S+ (version 31 and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified when creating a PendingIntent.
         //Strongly consider using FLAG_IMMUTABLE, only use FLAG_MUTABLE if some functionality depends on the PendingIntent being mutable, e.g. if it needs to be used with inline replies or bubbles.
         //WORKS WITH NEXUS 4 API 22
-        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_MUTABLE);
 
-        Notification notification = new Notification.Builder(this)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(getString(R.string.app_name))
-                .setAutoCancel(true)
-                .setPriority(Notification.PRIORITY_MAX)
-                .setDefaults(Notification.DEFAULT_VIBRATE)
-                .setContentIntent(pendingIntent)
-                .setContentIntent(pendingIntent)
-                .setContentText(text)
-                .build();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "MainActivity-DelayedMessageService", NotificationManager.IMPORTANCE_HIGH);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
+        Notification notification = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle(getString(R.string.app_name))
+                    .setContentText(text)
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_MAX)
+                    .setDefaults(Notification.DEFAULT_VIBRATE)
+                    .setContentIntent(pendingIntent)
+                    .build();
+        }
         notificationManager.notify(NOTIFICATION_ID, notification);
+        Log.d(TAG, "showText()");
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }
