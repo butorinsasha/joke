@@ -9,6 +9,7 @@ import android.app.Service;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -39,30 +40,24 @@ public class DelayedMessageService extends Service {
             }
         }
 
-        showText(intent.getStringExtra(EXTRA_MESSAGE));
+        showNotification(intent.getStringExtra(EXTRA_MESSAGE));
 
         return START_NOT_STICKY;
     }
 
-    private void showText(final String text) {
-        Intent intent = new Intent(this, MainActivity.class);
+    private void showNotification(final String text) {
+        Intent intent = new Intent(this, SecondActivity.class);
         TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(this);
-        taskStackBuilder.addParentStack(MainActivity.class);
+        taskStackBuilder.addParentStack(SecondActivity.class);
         taskStackBuilder.addNextIntent(intent);
-
-        //java.lang.IllegalArgumentException: local.pushkin.joke: Targeting S+ (version 31 and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified when creating a PendingIntent.
-        //Strongly consider using FLAG_IMMUTABLE, only use FLAG_MUTABLE if some functionality depends on the PendingIntent being mutable, e.g. if it needs to be used with inline replies or bubbles.
-        //WORKS WITH NEXUS 4 API 22
-        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_MUTABLE);
-
+        PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "MainActivity-DelayedMessageService", NotificationManager.IMPORTANCE_HIGH);
             notificationManager.createNotificationChannel(notificationChannel);
         }
         Notification notification = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentTitle(getString(R.string.app_name))
@@ -72,9 +67,20 @@ public class DelayedMessageService extends Service {
                     .setDefaults(Notification.DEFAULT_VIBRATE)
                     .setContentIntent(pendingIntent)
                     .build();
+            startForeground(NOTIFICATION_ID, notification);
+        } else {
+            notification = new Notification.Builder(this)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle(getString(R.string.app_name))
+                    .setContentText(text)
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_MAX)
+                    .setDefaults(Notification.DEFAULT_VIBRATE)
+                    .setContentIntent(pendingIntent)
+                    .build();
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
-        notificationManager.notify(NOTIFICATION_ID, notification);
-        Log.d(TAG, "showText()");
+        Log.d(TAG, "showText() done");
     }
 
     @Nullable
